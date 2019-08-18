@@ -1,0 +1,8 @@
+# Ignore emacs junk
+*~
+[#]*[#]
+
+# Ignore python junk
+*.pyc
+./db/*
+./env/*

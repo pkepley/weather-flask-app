@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Weather Forecast Comparison</title>
+    <script src="/static/main.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body onload="updatePage()">
+    <div id="selection_div">
+      <select id=airport_list name=airport onchange="updatePage()">
+	{% for airport in airport %}
+	<option value="{{airport}}"> {{city[loop.index0]}}, {{state[loop.index0]}} ({{airport}}) </option>
+	{% endfor %}
+      </select>
+      <!--<button onclick="updatePage()">Render</button>-->
+    </div>
+    <br>
+    <div id="graph_div" width="1000px" height="600px"></div>
+    <div id="table_div"></div>
+  </body>  
+</html>
