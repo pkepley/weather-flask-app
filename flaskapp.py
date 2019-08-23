@@ -39,34 +39,19 @@ def airport_dropdown():
 @app.route('/query', methods=['GET'])
 def query():
     # Read the airport from the url
+    af_type = request.args.get('af_type')
     airport = request.args.get('airport')
-    limit   = request.args.get('limit')
+
+    if af_type is None:
+        af_type = 'fcst'
+    
     if airport is None:
         airport = 'KORD'        
-    #if limit is None:
-    #    limit = 10
         
     db = get_db()    
     c  = db.cursor()
 
-    if limit is not None:
-        query_params = (airport, limit)        
-        query = c.execute(        
-            '''
-            SELECT 
-             pull_date
-            ,forecast_time_stamps
-            ,wind_speed_sustained
-            ,probability_of_precipitation_floating
-            ,temperature_hourly
-            FROM weather_fcst 
-            WHERE airport_name = ?
-            ORDER BY pull_date, forecast_time_stamps
-            LIMIT ?
-            ''',
-            query_params
-        )
-    else:
+    if af_type == 'fcst':
         query_params = (airport,)        
         query = c.execute(        
             '''
@@ -83,6 +68,23 @@ def query():
             query_params
         )
 
+    elif af_type == 'actl':
+        query_params = (airport,)        
+        query = c.execute(        
+            '''
+            SELECT 
+             datetime
+            ,weather
+            ,wind_speed
+            ,precip_1_hour
+            ,air_temp
+            FROM weather_actl 
+            WHERE airport_name = ?
+            ORDER BY datetime
+            ''',
+            query_params
+        )
+        
 
     rows = query.fetchall()
     columns = [desc[0] for desc in c.description]
