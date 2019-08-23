@@ -54,7 +54,11 @@ def query():
         query = c.execute(        
             '''
             SELECT 
-            * 
+             pull_date
+            ,forecast_time_stamps
+            ,wind_speed_sustained
+            ,probability_of_precipitation_floating
+            ,temperature_hourly
             FROM weather_fcst 
             WHERE airport_name = ?
             ORDER BY pull_date, forecast_time_stamps
@@ -67,7 +71,11 @@ def query():
         query = c.execute(        
             '''
             SELECT 
-            * 
+             pull_date
+            ,forecast_time_stamps
+            ,wind_speed_sustained
+            ,probability_of_precipitation_floating
+            ,temperature_hourly
             FROM weather_fcst 
             WHERE airport_name = ?
             ORDER BY pull_date, forecast_time_stamps
