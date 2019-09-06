@@ -6,13 +6,14 @@ from flask import (
 import sqlite3
 import pandas as pd
 
-weather_db = '/var/www/html/flaskapp/db/weather.sqlite'
+from db_setup import weather_db_loc, airport_list_loc
+
 app = Flask(__name__)
 
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
-        db = g._database = sqlite3.connect(weather_db)
+        db = g._database = sqlite3.connect(weather_db_loc)
     return db
 
 @app.teardown_appcontext
@@ -23,7 +24,7 @@ def close_connection(exception):
 
 @app.route('/')
 def airport_dropdown():
-    airport_data = pd.read_csv('/var/www/html/flaskapp/data/airports.csv')
+    airport_data = pd.read_csv(airport_list_loc)
     airport = airport_data['icao_designation'].values
     city    = airport_data['city'].values
     state   = airport_data['state'].values    
@@ -51,7 +52,7 @@ def query():
     db = get_db()    
     c  = db.cursor()
 
-    if af_type == 'fcst':
+    if af_type in ('fcst','forecast'):
         query_params = (airport,)        
         query = c.execute(        
             '''
@@ -68,7 +69,7 @@ def query():
             query_params
         )
 
-    elif af_type == 'actl':
+    elif af_type in ('actl','actual'):
         query_params = (airport,)        
         query = c.execute(        
             '''

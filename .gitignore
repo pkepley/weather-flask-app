@@ -1,3 +1,6 @@
+# Ignore the database setup file
+db_setup.py
+
 # Ignore emacs junk
 *~
 [#]*[#]
