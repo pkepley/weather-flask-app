@@ -4,5 +4,6 @@
 
 # Ignore python junk
 *.pyc
-./db/*
-./env/*
+db/*
+env/*
+data/*
