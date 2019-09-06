@@ -1,8 +1,8 @@
 import os
 import sqlite3
-import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import pandas as pd
+import numpy as np
 
 from db_setup import weather_db_loc, airport_list_loc
 
