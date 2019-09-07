@@ -104,12 +104,14 @@ def get_heatmap():
     airport = request.args.get('airport')    
     temp_heatmap_tbl, _ = get_avf_heatmaps(airport)
 
-    # 
+    # Data labels
     columns   = list(temp_heatmap_tbl.columns)
     row_names = list(temp_heatmap_tbl.index)
-    temp_heatmap_tbl = '\n'.join(['\t'.join(["{0:.03f}".format(e) for e in l]) for l in list(temp_heatmap_tbl.to_numpy())])
-    
-    return temp_heatmap_tbl
+
+    # Convert the table to csv
+    temp_heatmap_str = temp_heatmap_tbl.to_csv(index=False)
+
+    return temp_heatmap_str
 
 if __name__ == "__main__":
     app.run()
