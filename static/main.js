@@ -147,6 +147,211 @@ function makeGraphs(data){
   
 }
 
+
+function makeHeatmapSvg(data, svgParent, marginParams, titleString) {
+  const margin = marginParams['margin'],
+	height = marginParams['height'],
+	width  = marginParams['width'],
+	square_size = Math.min((width - 70) / 24, height / 7);
+  
+  var xScale = d3.scaleLinear()
+      .domain([0, 23])
+      .range([0, 24 * square_size]);
+
+  var yScale = d3.scaleLinear()
+      .domain([0, 6])
+      .range([0, 7 * square_size]);
+
+  var tempDeltaMin = d3.min(Object.values(d3.min(data)));
+  var tempDeltaMax = d3.max(Object.values(d3.max(data)));    
+  
+  var colorScale = d3.scaleSequential(d3.interpolateInferno)
+      .domain([tempDeltaMin, tempDeltaMax]);  
+ 
+  var svg = svgParent.append('svg')
+      .attr('width',  width  + 2 * margin)
+      .attr('height', height + 2 * margin)
+      .append('g')
+      .attr('transform',
+	    `translate(${margin}, ${margin})`);
+
+  svg.append('text')
+    .attr('x', 0)
+    .attr('y', 0 - (margin / 2))
+    .attr('text-anchor', 'left')
+    .style('font-size', '16px')
+    .text(titleString);
+
+  var dataFlat = [];
+  
+  for(var i = 0; i < 7; i++){
+    for(var j = 0; j < 24; j++){
+      dataFlat.push({
+	"i" : i,
+	"j" : j,
+	"val" : data[i][j]
+      });
+    }
+  }
+
+  for (i = 1; i <= 7; i++){
+    svg.append('text')
+      .attr('x', xScale(-0.5))
+      .attr('y', yScale(i - 0.4))
+      .attr('text-anchor', 'left')
+      .style('font-size', '10px')
+      .text(i);
+  }
+  
+  for (j = 0; j <= 23; j++){
+    svg.append('text')
+      .attr('x', xScale(j+0.25))
+      .attr('y', yScale(7.5))
+      .attr('text-anchor', 'left')
+      .style('font-size', '10px')
+      .text(j);
+  }
+  
+  
+  var tooltip = d3.select("body")
+      .append("div")
+      .style("position", "absolute")
+      .style("z-index", "10")
+      .style("visibility", "hidden");
+ 
+  var squares = svg.selectAll("rect")
+      .data(dataFlat)
+      .enter()
+      .append("rect")
+      .attr("x", d => xScale(d.j))
+      .attr("y", d => yScale(d.i))
+      .attr("width",  square_size)
+      .attr("height", square_size)
+      .style("fill", d => colorScale(d.val))
+      .on("mouseover", function(d){
+	return tooltip.style("visibility", "visible")
+	  .style("background-color", "white")
+	  .style("data-html", "true")
+	  .html(
+	    "Forecast Day " + (d.i + 1) + "</br>" +
+	    "Hour: "        + (d.j)     + "</br>" +
+	    "Forecast - Actual: " + d.val.toFixed(3)
+	  );
+      })
+      .on("mousemove", function(d){
+	return tooltip.style("top", (event.pageY-10)+"px")
+	  .style("left",(event.pageX+10)+"px")
+	  .html(
+	    "Forecast Day " + (d.i + 1) + "</br>" +
+	    "Hour: "        + (d.j)     + "</br>" +
+	    "Forecast - Actual: " + d.val.toFixed(3)
+	  );
+      })
+      .on("mouseout", function(){
+	return tooltip.style("visibility", "hidden").text("");
+      });
+  
+
+  var div = d3.select("body");
+  //var svg2 = div.append("svg");
+  svg2 = svg;
+
+  svg2.attr("width", 20)
+    .attr("height", height);
+
+  var svgDefs = svg2.append('defs');
+
+  var mainGradient = svgDefs
+      .append('linearGradient')
+      .attr('id', 'mainGradient')
+      .attr("x1", "100%")
+      .attr("y1", "100%")
+      .attr("x2", "100%")
+      .attr("y2", "0%")
+      .attr("spreadMethod", "pad")
+  ;
+
+  var nStops = 10;
+  for (i = 0; i <= nStops; i++) {
+    mainGradient.append('stop')
+      .style('stop-color', colorScale(tempDeltaMin + (i / nStops) * (tempDeltaMax - tempDeltaMin) ))
+      .attr('offset', 100 * (i / nStops) + "%")
+      .attr('stop-opacity', 1)
+    ;
+  }
+  
+  // Use the gradient to set the shape fill, via CSS.
+  svg2.append('rect')
+    .classed('filled', true)
+    .style('fill', 'url(#mainGradient)')  
+    .attr('x', 27 * square_size)
+    .attr('y', 0)
+    .attr('width', square_size)
+    .attr('height', height - margin);
+
+
+  var tempScale = d3.scaleLinear()
+      .domain([tempDeltaMin, tempDeltaMax])
+      .range([0, height - margin]);
+  
+  var temp_axis = d3.axisLeft()
+      .scale(tempScale);
+
+
+  var displacement = 27 * square_size;
+  svg2.append("g")
+    .attr('transform', `translate(${displacement}, 0)`)  
+    .call(temp_axis);
+
+
+  
+  
+  
+  return svg;
+}
+
+function makeHeatMap(airport) {
+  const margin = 30;
+  const width  = 600 - 2 * margin;
+  const height =  250 - 2 * margin;
+
+  const marginParams = {
+    margin : margin,
+    width  : width,
+    height : height
+  }
+  
+  var div = d3.select('#heatmap_div');
+
+  // Drop the svgs from this div
+  var svgs = div.selectAll('svg');
+  svgs.remove();
+  
+  heatmap_url = "/heatmap?airport=" + airport;
+  d3.csv(heatmap_url)
+    .then(function(data) {
+
+      // convert data to numeric 
+      data.forEach(function(d) {
+	for(var i=0; i < 24; i++){
+	  if(d[i] != "") {
+	    d[i] = +d[i];
+	  }
+	  else{
+	    d[i] = null;
+	  }
+	}
+      });
+
+      // Make the heatmap SVG
+      svg = makeHeatmapSvg(data, div, marginParams, 'Temperature Fcst vs Actl Comparison Heatmap');  
+  });
+  
+  
+  
+}
+
+
 function updatePage() {
   var airport_elt = document.getElementById("airport_list");
   airport = airport_elt.value;
@@ -158,4 +363,8 @@ function updatePage() {
       //makeTable(data);
       makeGraphs(data);
     });
+
+  // add a heatmap plot
+  makeHeatMap(airport);
+  
 }
