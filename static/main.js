@@ -75,7 +75,10 @@ function makeSvg(data, svgParent, rangeParams, plotNames, parseTime, group_label
   svg.append('g')
     .attr('class', 'x axis')
     .attr('transform', `translate(0, ${height})`)  
-    .call(d3.axisBottom(xScale));
+    .call(d3.axisBottom(xScale)
+	  .ticks(d3.timeDay.every( Math.floor(group_labels.length / 7)) )
+	  .tickFormat(d3.timeFormat("%b-%d"))
+	 );
 
   svg.append('g')
     .attr('class', 'y axis')
@@ -114,10 +117,9 @@ function makeGraphs(data){
   }
   
   var div = d3.select('#graph_div');      
-
-  var svgs = div.selectAll('svg');
-  svgs.remove();
-    
+  div.selectAll('br').remove();
+  div.selectAll('svg').remove();
+      
   var parseTime = d3.isoParse;  
   var times = data.map(function(d) {
     return parseTime(d.forecast_time_stamps);
@@ -138,12 +140,20 @@ function makeGraphs(data){
   tempRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 120};
   titleString = 'Temperature Forecast Comparison';
   svgTemp   = makeSvg(data, div, tempRange, plotNames, parseTime, distinct_fcsts, marginParams, titleString);
-
+  //div.append('br');
+  
   // Make Precipitation Probability Chart
   plotNames   = {xName : 'forecast_time_stamps', yName : 'probability_of_precipitation_floating'};
   precipRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 100};
   titleString = 'Precipitation Probability Forecast Comparison';
   svgPrecip   = makeSvg(data, div, precipRange, plotNames, parseTime, distinct_fcsts, marginParams, titleString);
+  div.append('br');
+
+  // Make Wind-speed chart
+  plotNames = {xName : 'forecast_time_stamps', yName : 'wind_speed_sustained'};  
+  tempRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 30};
+  titleString = 'Wind Speed Forecast Comparison';
+  svgTemp   = makeSvg(data, div, tempRange, plotNames, parseTime, distinct_fcsts, marginParams, titleString);
   
 }
 
@@ -212,7 +222,6 @@ function makeHeatmapSvg(data, svgParent, marginParams, titleString) {
       .text(j);
   }
   
-  
   var tooltip = d3.select("body")
       .append("div")
       .style("position", "absolute")
@@ -251,15 +260,7 @@ function makeHeatmapSvg(data, svgParent, marginParams, titleString) {
 	return tooltip.style("visibility", "hidden").text("");
       });
   
-
-  var div = d3.select("body");
-  //var svg2 = div.append("svg");
-  svg2 = svg;
-
-  svg2.attr("width", 20)
-    .attr("height", height);
-
-  var svgDefs = svg2.append('defs');
+  var svgDefs = svg.append('defs');
 
   var mainGradient = svgDefs
       .append('linearGradient')
@@ -271,40 +272,34 @@ function makeHeatmapSvg(data, svgParent, marginParams, titleString) {
       .attr("spreadMethod", "pad")
   ;
 
+  var tempScale = d3.scaleLinear()
+      .domain([tempDeltaMax, tempDeltaMin])
+      .range([0, 8 * square_size]);
+  
   var nStops = 10;
   for (i = 0; i <= nStops; i++) {
     mainGradient.append('stop')
       .style('stop-color', colorScale(tempDeltaMin + (i / nStops) * (tempDeltaMax - tempDeltaMin) ))
       .attr('offset', 100 * (i / nStops) + "%")
-      .attr('stop-opacity', 1)
-    ;
+      .attr('stop-opacity', 1);    
   }
   
   // Use the gradient to set the shape fill, via CSS.
-  svg2.append('rect')
+  svg.append('rect')
     .classed('filled', true)
     .style('fill', 'url(#mainGradient)')  
     .attr('x', 27 * square_size)
     .attr('y', 0)
     .attr('width', square_size)
-    .attr('height', height - margin);
-
-
-  var tempScale = d3.scaleLinear()
-      .domain([tempDeltaMin, tempDeltaMax])
-      .range([0, height - margin]);
+    .attr('height', 8 * square_size);
   
   var temp_axis = d3.axisLeft()
       .scale(tempScale);
 
-
   var displacement = 27 * square_size;
-  svg2.append("g")
+  svg.append("g")
     .attr('transform', `translate(${displacement}, 0)`)  
     .call(temp_axis);
-
-
-  
   
   
   return svg;
