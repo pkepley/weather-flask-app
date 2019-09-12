@@ -12,7 +12,7 @@ from forecast_tools import get_avf_compare, get_fcst, get_actl
 if len(sys.argv) > 1:
     date_str = sys.argv[1]
 else:
-    date_str = '2019-08-13'
+    date_str = '2019-08-17'
 
 # Airport list
 df_airport   = pd.read_csv(airport_list_loc)
@@ -61,17 +61,9 @@ for airport in airport_list:
         query_result = cur.fetchall()
     else:
         query_result = None
-
-    try:
-        na, _ = get_actl(airport, date_str).shape
-        nf, _ = get_fcst(airport, date_range_strs = [first_pull_dt, last_pull_dt]).shape
-        found_results = (na >= 2) and (nf >= 2)
-        print(airport, date_str, na,nf,found_results)
-    except:
-        found_results = False
         
     # Data exists and nothing found on the table so far
-    if (query_result is None or len(query_result) == 0) and found_results:
+    if (query_result is None or len(query_result) == 0):
         try:
             df_avf_compare = get_avf_compare(airport, date_str)
             df_avf_compare['airport_name'] = airport
@@ -85,7 +77,6 @@ for airport in airport_list:
             
         except:
             print('something went wrong with {0} for {1}'.format(airport, date_str))
-            sleep(10)
             
     # Either the data did not exist, or the data has already been loaded
     else:
