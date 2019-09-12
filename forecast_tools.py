@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-#from pytz import timezone
+from pytz import timezone
 
 from db_setup import weather_db_loc, airport_list_loc
 
@@ -177,8 +177,7 @@ def get_fcst_interp(airport_name, date_str = None):
     
     for pull_dt in all_pull_dts:
         # Data frame for the current pull date
-        df_curr_fcst = df_fcst.loc[df_fcst['pull_date'] == pull_dt, 
-                                   df_fcst.columns]
+        df_curr_fcst = df_fcst.loc[df_fcst['pull_date'] == pull_dt, df_fcst.columns]
         df_curr_fcst.reindex()
 
         # must have at least 2 datapoints to interpolate
@@ -186,17 +185,22 @@ def get_fcst_interp(airport_name, date_str = None):
             nt, _ = df_curr_fcst.shape
         except:
             nt = 0
-
+        
         if nt >= 2:        
             # Interpolation range
             t_min = df_curr_fcst['forecast_time_stamps'].min()
             t_max = df_curr_fcst['forecast_time_stamps'].max()
-            df_curr_fcst['seconds_since_min'] = (df_curr_fcst['forecast_time_stamps'] - t_min)
+
+            # First applicable date of forecast
+            t_fcst_min = datetime.strptime(pull_dt, '%Y-%m-%d').replace(tzinfo = t_min.tzinfo)
+            
+            df_curr_fcst['seconds_since_min'] = (df_curr_fcst['forecast_time_stamps'] - t_fcst_min)
             df_curr_fcst['seconds_since_min'] = df_curr_fcst['seconds_since_min'].apply(lambda t: t.total_seconds())
             
             # Actual times in seconds to interpolate at
             df_interp = pd.DataFrame({'datetime' : all_actl_tms})
-            df_interp['time_delta'] = (df_interp['datetime'] - t_min)
+            df_interp['t_fcst_min'] = t_fcst_min
+            df_interp['time_delta'] = (df_interp['datetime'] - t_fcst_min)
             df_interp['interp_seconds'] = df_interp['time_delta'].apply(lambda x: x.total_seconds())
             df_interp['interp_day'    ] = df_interp['time_delta'].apply(lambda x: x.days)#/ (3600 * 24)
             df_interp['interp_hour'   ] = df_interp['datetime'  ].apply(lambda x: x.hour)
@@ -230,7 +234,7 @@ def get_fcst_interp(airport_name, date_str = None):
             
             # Re-arrange
             df_interp = df_interp[['pull_date', 'datetime', 'interp_seconds', 'interp_day', 'interp_hour',
-                                   'fcst_temperature', 'fcst_wind_speed', 'fcst_precip_prob']]
+                                  'fcst_temperature', 'fcst_wind_speed', 'fcst_precip_prob']]
             
             all_interp_dfs.append(df_interp)
 
