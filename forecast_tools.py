@@ -285,7 +285,77 @@ def get_avf_heatmaps(airport_name):
     fcst_columns = [desc[0] for desc in c.description]    
     df_pivot_flat = pd.DataFrame(fcst_rows, columns = fcst_columns)
 
-    temp_avf_heatmap_tbl = df_pivot_flat.pivot(index = 'interp_day', columns = 'interp_hour', values='avg_temp_delta')
-    wind_avf_heatmap_tbl = df_pivot_flat.pivot(index = 'interp_day', columns = 'interp_hour', values='avg_wind_speed_delta')
+    temp_avf_heatmap_tbl = df_pivot_flat.pivot(
+        index = 'interp_day',
+        columns = 'interp_hour',
+        values='avg_temp_delta'
+    )
+    
+    wind_avf_heatmap_tbl = df_pivot_flat.pivot(
+        index = 'interp_day',
+        columns = 'interp_hour',
+        values='avg_wind_speed_delta'
+    )
 
     return temp_avf_heatmap_tbl, wind_avf_heatmap_tbl
+
+
+def get_fvf_heatmap_tbl(airport_name):
+    db = sqlite3.connect(weather_db_loc)
+    c  = db.cursor()
+    
+    query_params = (airport_name,)        
+    query = c.execute(            
+        '''
+        select
+           cast(julianday(f1.forecast_time_stamps) - julianday(f1.pull_date || " 00:00:00-" || substr(f1.forecast_time_stamps, 21)) as integer) as day_of_snp1
+          ,cast(julianday(f2.forecast_time_stamps) - julianday(f2.pull_date || " 00:00:00-" || substr(f2.forecast_time_stamps, 21)) as integer) as day_of_snp2
+          ,cast(substr(f2.forecast_time_stamps, 12, 2) as int) as fcst_hour
+          ,avg(f2.temperature_hourly - f1.temperature_hourly) as avg_temp_delta
+          ,avg(f2.probability_of_precipitation_floating - f1.probability_of_precipitation_floating) as avg_prob_precip_delta
+          ,avg(f2.wind_speed_sustained - f1.wind_speed_sustained) as avg_wind_speed_delta
+          ,count(*) as cnt_snp2_v_snp1
+        from weather_fcst as f1
+        left join weather_fcst as f2
+        on f1.forecast_time_stamps = f2.forecast_time_stamps
+        and f1.airport_name = f2.airport_name
+        where f1.airport_name = ?
+        and f2.pull_date > f1.pull_date
+        group by day_of_snp1, day_of_snp2, fcst_hour
+        order by day_of_snp1, day_of_snp2, fcst_hour
+        ''',
+        query_params
+    )
+    fcst_rows = query.fetchall()
+    fcst_columns = [desc[0] for desc in c.description]    
+    df_pivot_flat = pd.DataFrame(fcst_rows, columns = fcst_columns)
+
+    return df_pivot_flat
+
+def get_fvf_heatmap_csv(airport_name):
+    df_pivot_flat = get_fvf_heatmap_tbl(airport_name)
+    
+    return df_pivot_flat.to_csv(index=False)
+
+def get_fvf_heatmap_array(airport_name):
+    df_pivot_flat = get_fvf_heatmap_tbl(airport_name)
+
+    temp_fvf_heatmap_tbl = df_pivot_flat.pivot_table(
+        index   = ['day_of_snp2', 'day_of_snp1'],
+        columns = ['fcst_hour'],
+        values  = 'avg_temp_delta'
+    )
+
+    prob_precip_fvf_heatmap_tbl = df_pivot_flat.pivot_table(
+        index   = ['day_of_snp2', 'day_of_snp1'],
+        columns = ['fcst_hour'],
+        values  = 'avg_prob_precip_delta'
+    )
+
+    wind_speed_fvf_heatmap_tbl = df_pivot_flat.pivot_table(
+        index   = ['day_of_snp2', 'day_of_snp1'],
+        columns = ['fcst_hour'],
+        values  = 'avg_wind_speed_delta'
+    )
+
+    return temp_fvf_heatmap_tbl, wind_speed_fvf_heatmap_tbl, prob_precip_fvf_heatmap_tbl

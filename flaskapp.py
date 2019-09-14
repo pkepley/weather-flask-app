@@ -5,7 +5,7 @@ from flask import (
 )
 import sqlite3
 import pandas as pd
-from forecast_tools import get_avf_heatmaps
+from forecast_tools import get_avf_heatmaps, get_fvf_heatmap_csv
 
 
 from db_setup import weather_db_loc, airport_list_loc
@@ -99,8 +99,8 @@ def query():
     return jsonify(result)
 
 
-@app.route('/heatmap', methods=['GET'])
-def get_heatmap():
+@app.route('/avf_heatmap', methods=['GET'])
+def get_avf_heatmap():
     airport = request.args.get('airport')    
     temp_heatmap_tbl, _ = get_avf_heatmaps(airport)
 
@@ -112,6 +112,14 @@ def get_heatmap():
     temp_heatmap_str = temp_heatmap_tbl.to_csv(index=False)
 
     return temp_heatmap_str
+
+
+@app.route('/fvf_heatmap', methods=['GET'])
+def get_fvf_heatmap():
+    airport = request.args.get('airport')    
+    fvf_heatmap_flat_csv = get_fvf_heatmap_csv(airport)
+    
+    return fvf_heatmap_flat_csv
 
 if __name__ == "__main__":
     app.run()
