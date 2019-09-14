@@ -39,7 +39,7 @@ def get_fcst(airport_name, date_str = None, date_range_strs = None):
             # date range to pull
             date_time = datetime.strptime(date_str, '%Y-%m-%d')
             first_pull_dt = (date_time + timedelta(days = 0)).strftime('%Y-%m-%d')
-            last_pull_dt =  (date_time + timedelta(days = 1)).strftime('%Y-%m-%d')
+            last_pull_dt =  (date_time + timedelta(days = 2)).strftime('%Y-%m-%d')
         else:
             first_pull_dt = date_range_strs[0]
             last_pull_dt  = date_range_strs[1]
@@ -263,22 +263,29 @@ def get_avf_compare(airport_name, date_str = None):
     return df_interp_compare
     
 def get_avf_heatmaps(airport_name):
-    df_avf_compare = get_avf_compare(airport_name)
+    db = sqlite3.connect(weather_db_loc)
+    c  = db.cursor()
     
-    temp_avf_heatmap_tbl = pd.pivot_table(
-        df_avf_compare, 
-        values='temp_delta',
-        index=['interp_day'], 
-        columns =['interp_hour'],
-        aggfunc=np.mean
+    query_params = (airport_name,)        
+    query = c.execute(        
+        '''
+        SELECT 
+        interp_day
+        ,interp_hour
+        ,avg(temp_delta) as avg_temp_delta
+        ,avg(wind_speed_delta) as avg_wind_speed_delta
+        FROM weather_avf_compare
+        WHERE airport_name = ?
+        GROUP BY interp_day, interp_hour
+        ORDER BY interp_day, interp_hour
+        ''',
+        query_params
     )
+    fcst_rows = query.fetchall()
+    fcst_columns = [desc[0] for desc in c.description]    
+    df_pivot_flat = pd.DataFrame(fcst_rows, columns = fcst_columns)
 
-    wind_avf_heatmap_tbl = pd.pivot_table(
-        df_avf_compare, 
-        values='wind_speed_delta',
-        index=['interp_day'], 
-        columns =['interp_hour'],
-        aggfunc=np.mean
-    )
+    temp_avf_heatmap_tbl = df_pivot_flat.pivot(index = 'interp_day', columns = 'interp_hour', values='avg_temp_delta')
+    wind_avf_heatmap_tbl = df_pivot_flat.pivot(index = 'interp_day', columns = 'interp_hour', values='avg_wind_speed_delta')
 
     return temp_avf_heatmap_tbl, wind_avf_heatmap_tbl
