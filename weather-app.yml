@@ -1,0 +1,12 @@
+name: weather-app
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - flask
+  - pandas
+  - scipy
+  - uwsgi
+  - tzlocal
+  - pytz
+
