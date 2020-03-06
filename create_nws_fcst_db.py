@@ -3,15 +3,16 @@ import sqlite3
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
+from db_setup import *
 
 # Basic set-up
 if len(sys.argv) > 1:
-    data_input_root = sys.argv[1]
-    db_dir = sys.argv[2]    
-    fcst_dt = sys.argv[3]
+    #data_input_root = sys.argv[1]
+    #db_dir = sys.argv[2]    
+    fcst_dt = sys.argv[1]
 else:
-    data_input_root = '/home/ubuntu/flaskapp/data/'
-    db_dir  = '/home/ubuntu/flaskapp/db/'    
+    #data_input_root = '/home/ubuntu/flaskapp/data/'
+    #db_dir  = '/home/ubuntu/flaskapp/db/'    
     fcst_dt  = '2019-08-13'
 
 # Airport list
@@ -19,7 +20,7 @@ df_airport   = pd.read_csv(os.path.join(data_input_root, 'airports.csv'))
 airport_list = df_airport['icao_designation'].to_list()
 
 # Set up the database for
-sqlite_file = os.path.join(db_dir, 'weather.sqlite')
+sqlite_file = weather_db_loc #os.path.join(db_dir, 'weather.sqlite')
 conn    = sqlite3.connect(sqlite_file)
 cur     = conn.cursor()
 
@@ -30,7 +31,7 @@ columns = ['airport_name', 'pull_date', 'forecast_time_stamps', 'temperature_dew
 
 # Load data for each airport
 for airport in airport_list:    
-    # Expected location for the airport's forecast
+    # Expected location for the airport's forecast   
     airport_fcst_path = os.path.join(
         data_input_root,
         airport,
@@ -62,8 +63,12 @@ for airport in airport_list:
     else:
         query_result = None
 
-    # Data exists and nothing found on the table so far
-    if os.path.exists(airport_fcst_path) and (query_result is None or len(query_result) == 0):
+    # May have gziped the file...
+    if not os.path.exists(airport_fcst_path):
+        airport_fcst_path = airport_fcst_path + '.gz'
+
+    # Data exists and nothing found on the table so far        
+    if (query_result is None or len(query_result) == 0) and os.path.exists(airport_fcst_path):
         df_airport = pd.read_csv(airport_fcst_path)
         df_airport['airport_name'] = airport
         for c in columns:

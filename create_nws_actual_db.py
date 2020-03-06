@@ -3,27 +3,25 @@ import sqlite3
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
+from db_setup import *
 
 # Basic set-up
 if len(sys.argv) > 1:
-    data_input_root = sys.argv[1]
-    db_dir = sys.argv[2]
-    actl_dt = sys.argv[3]
-    actl_datetime = datetime.strptime(actl_dt, '%Y-%m-%d')
-    tomm_datetime = actl_datetime + timedelta(days=1)
-    tomm_dt = tomm_datetime.strftime('%Y-%m-%d')
+    actl_dt = sys.argv[1]
+    tomm_dt = actl_dt
+
 else:
-    data_input_root = '/home/ubuntu/flaskapp/data/'
-    db_dir  = '/home/ubuntu/flaskapp/db/'
-    actl_dt  = '2019-08-12'
-    tomm_dt  = '2019-08-13'
+    #data_input_root = '/home/ubuntu/flaskapp/data/'
+    #db_dir  = '/home/ubuntu/flaskapp/db/'
+    actl_dt  = '2019-11-01'
+    tomm_dt  = '2019-11-02'
 
 # Airport list
-df_airport   = pd.read_csv(os.path.join(data_input_root, 'airports.csv'))
+df_airport   = pd.read_csv(airport_list_loc)
 airport_list = df_airport['icao_designation'].to_list()
 
 # Set up the database for
-sqlite_file = os.path.join(db_dir, 'weather.sqlite')
+sqlite_file = weather_db_loc
 conn    = sqlite3.connect(sqlite_file)
 cur     = conn.cursor()
 
@@ -32,6 +30,7 @@ columns = ['datetime', 'date', 'time', 'wind_raw', 'wind_dir', 'wind_speed',
            'dew_point', 'temp_6_hour_max', 'temp_6_hour_min', 'relative_humidity',
            'wind_chill', 'heat_index', 'pressure', 'pressure_mb', 'precip_1_hour',
            'precip_3_hour', 'precip_6_hour', 'airport_name']
+    
 
 # Load data for each airport
 for airport in airport_list:    
@@ -39,8 +38,12 @@ for airport in airport_list:
     airport_actl_path = os.path.join(
         data_input_root,
         airport,
-        'nws_actual_{0}.csv'.format(actl_dt)
+        'nws_actual_{0}.csv'.format(tomm_dt)
     )
+
+    # May have gzipped it
+    if not os.path.exists(airport_actl_path):
+        airport_actl_path = airport_actl_path + '.gz'
 
     # Check to see if the weather forecast table exists
     cur.execute('''
