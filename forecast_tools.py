@@ -276,6 +276,7 @@ def get_avf_heatmaps(airport_name):
         ,avg(wind_speed_delta) as avg_wind_speed_delta
         FROM weather_avf_compare
         WHERE airport_name = ?
+          AND interp_day >= 0
         GROUP BY interp_day, interp_hour
         ORDER BY interp_day, interp_hour
         ''',
