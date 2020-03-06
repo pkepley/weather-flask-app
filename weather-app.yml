@@ -9,4 +9,4 @@ dependencies:
   - uwsgi
   - tzlocal
   - pytz
-
+  - requests
