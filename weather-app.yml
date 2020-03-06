@@ -10,3 +10,4 @@ dependencies:
   - tzlocal
   - pytz
   - requests
+  - bs4
