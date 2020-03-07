@@ -5,9 +5,9 @@ import pandas as pd
 from datetime import datetime, timedelta
 from forecast_tools import get_avf_compare, get_fcst, get_actl
 
-def check_table_exists(conn, table_name):
+def check_table_exists(db_conn, table_name):
     # Cursor
-    cur = conn.cursor()
+    cur = db_conn.cursor()
     
     # Check to see if the weather forecast table exists
     cur.execute(
@@ -24,18 +24,18 @@ def check_table_exists(conn, table_name):
 
     return table_exists
 
-def check_nws_actl_loaded(conn, airport_name, start_dt, end_dt = None):
+def check_nws_actl_loaded(db_conn, airport_name, start_dt, end_dt = None):
     # default end date
     if end_dt is None:
         end_dt = datetime.strptime(start_dt, '%Y-%m-%d') + timedelta(days=1)
         end_dt = end_dt.strftime('%Y-%-m-%d')
         
     # Check if table exists
-    actl_table_exists = check_table_exists(conn, 'weather_actl')
+    actl_table_exists = check_table_exists(db_conn, 'weather_actl')
     
     # If the table exists, see if the data has been loaded
     if actl_table_exists:
-        cur = conn.cursor()
+        cur = db_conn.cursor()
         
         query_params = (airport_name, start_dt, end_dt)
         cur.execute(
@@ -68,7 +68,7 @@ def update_nws_actl_db(db_conn, airport_name, df_nws_actl, actl_dt):
                'precip_3_hour', 'precip_6_hour', 'airport_name']
 
     # Check if data is loaded
-    data_loaded = check_nws_actl_loaded(conn, airport_name, actl_dt)    
+    data_loaded = check_nws_actl_loaded(db_conn, airport_name, actl_dt)    
 
     # Load data if not present
     if not data_loaded:
@@ -85,13 +85,13 @@ def update_nws_actl_db(db_conn, airport_name, df_nws_actl, actl_dt):
         df_nws_actl.to_sql('weather_actl', index=False, con = db_conn,
                            if_exists='append')
         
-def check_nws_fcst_loaded(conn, airport_name, pull_dt):
+def check_nws_fcst_loaded(db_conn, airport_name, pull_dt):
     # Check if table exists
-    fcst_table_exists = check_table_exists(conn, 'weather_fcst')
+    fcst_table_exists = check_table_exists(db_conn, 'weather_fcst')
     
     # If the table exists, see if the data has been loaded
     if fcst_table_exists:
-        cur = conn.cursor()
+        cur = db_conn.cursor()
         
         query_params = (airport_name, pull_dt)
         cur.execute(
@@ -124,7 +124,7 @@ def update_nws_fcst_db(db_conn, airport_name, df_nws_fcst, pull_dt):
                'hourly_qpf_floating']
 
     # Check if data is loaded
-    data_loaded = check_nws_fcst_loaded(conn, airport_name, pull_dt)    
+    data_loaded = check_nws_fcst_loaded(db_conn, airport_name, pull_dt)    
 
     # Load data if not present
     if not data_loaded:
@@ -142,13 +142,13 @@ def update_nws_fcst_db(db_conn, airport_name, df_nws_fcst, pull_dt):
                            if_exists='append')
 
 
-def check_nws_avf_compare_loaded(conn, airport_name, fcst_date_str):
+def check_nws_avf_compare_loaded(db_conn, airport_name, fcst_date_str):
     # Check if table exists
-    avf_table_exists = check_table_exists(conn, 'weather_avf_compare')
+    avf_table_exists = check_table_exists(db_conn, 'weather_avf_compare')
     
     # If the table exists, see if the data has been loaded
     if avf_table_exists:
-        cur = conn.cursor()
+        cur = db_conn.cursor()
         
         # Pull a single all snapshots records for this day's forecast:
         fcst_date_time = datetime.strptime(fcst_date_str, '%Y-%m-%d')
