@@ -10,3 +10,6 @@ db_setup.py
 db/*
 env/*
 data/*
+
+# Ignore junk
+junk
