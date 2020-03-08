@@ -1,4 +1,4 @@
-import sys, os, re, requests, urllib3
+import sys, os, re, requests, urllib3, pathlib
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
@@ -323,7 +323,7 @@ def midnight_pull_and_save(df_airports, out_root = None):
 
      # Ensure out_root exists
      if out_root is not None and (not os.path.exists(out_root)):
-          os.mkdir(out_root)
+          pathlib.Path(out_root).mkdir(parents=True, exist_ok=True)          
      
      # In which timezone is it midnight?
      midnight_hour = 0
@@ -346,7 +346,7 @@ def midnight_pull_and_save(df_airports, out_root = None):
                
                # Create output dir for airport if it doesn't exist
                if out_root is not None and (not os.path.exists(airport_out_dir)):
-                    os.mkdir(airport_out_dir)
+                    pathlib.Path(airport_out_dir).mkdir(parents=True, exist_ok=True)                    
 
                # Pull Forecast
                try: 
