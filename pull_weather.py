@@ -218,7 +218,7 @@ def parse_nws_actl(req_text, df_airports, airport_name, date_str_last_actl, date
      cols = df_nws_actl.columns.to_list()
      
      # Last date does not match so parsing will fail. Return None to avoid errors.
-     if datetime_last_actl.strftime('%d') != df_nws_actl.iloc[0]['date']:          
+     if datetime_last_actl.strftime('%d') not in df_nws_actl['date'].to_list():          
           print('Expected LA date was: {}.'.format(datetime_last_actl.strftime('%d')))
           print('Dataset  LA date was: {}.'.format(df_nws_actl.iloc[0]['date']))
           return None
@@ -274,8 +274,7 @@ def pull_save_parse_nws_actl(airport_name, df_airports, out_dir = None):
      datetime_last_actl = datetime.now(get_localzone())
      datetime_last_actl = datetime_last_actl.astimezone(timezone(tz_str))
      if datetime_last_actl.hour < 12:
-          datetime_last_actl = datetime_last_actl + timedelta(days = 1)
-          
+          datetime_last_actl = datetime_last_actl + timedelta(hours = -12)
      date_str_last_actl = datetime_last_actl.strftime('%Y-%m-%d')
      
      # Get the request
@@ -340,7 +339,7 @@ def midnight_pull_and_save(df_airports, out_root = None):
           df_airports_to_pull = df_airports[df_airports['time_zone'] == tz_to_run]
           
           # Iterate through list of airports and pull data
-          for i, row in df_airports.iterrows():  
+          for i, row in df_airports_to_pull.iterrows():  
                airport_name = row['icao_designation']
                airport_out_dir = os.path.join(out_root, airport_name)
                
@@ -373,3 +372,4 @@ def midnight_pull_and_save(df_airports, out_root = None):
                # Sleep for a few seconds
                random_sleep()
                sys.stdout.flush()
+
