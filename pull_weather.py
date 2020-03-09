@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from io import StringIO
 from pytz import timezone
 from tzlocal import get_localzone
-
+     
 
 def random_sleep(sleep_min = 3, sleep_max = 4):
      sleep_time = sleep_min + (sleep_max - sleep_min) * np.random.rand()
@@ -143,11 +143,24 @@ def parse_nws_actl_raw(req_text):
                   
      # extract table data
      table = soup.find_all('table')[3]
+     table_head = table.find_all('th')
      table_rows = table.find_all('tr')[3:][:-3]
      table_data = [tr.find_all('td') for tr in table_rows]
      table_data = [[td.text for td in tr] for tr in table_data]   
      table_data = np.array(table_data)
 
+     # Get time information from header
+     time_cols = [th.text for th in table_head if 'Time' in th]
+     if len(time_cols) > 0:
+          parse_time_attr = time_cols[0]
+          if '(' in parse_time_attr and ')' in parse_time_attr:
+               parse_time_zone = parse_time_attr.split('(')[1]
+               parse_time_zone = parse_time_zone.split(')')[0]
+          else:
+               parse_time_zone = None
+     else:
+          parse_time_zone = None
+               
      # convert table data to dataframe
      df_nws_actl = pd.DataFrame(
          table_data, 
@@ -197,7 +210,27 @@ def parse_nws_actl_raw(req_text):
           'pressure_mb', 'precip_1_hour', 'precip_3_hour', 'precip_6_hour'
      ]]
          
-     return df_nws_actl
+     return df_nws_actl, parse_time_zone
+
+# Dictionaries are defined here to deal with the fact that times are converted on the
+# webpage prior to the true DST conversion. So times are harder to parse on these dates
+dst_timezone_alts = {
+     'US/Eastern'  : 'Etc/GMT+4',
+     "US/Central"  : 'Etc/GMT+5',
+     "US/Mountain" : 'Etc/GMT+6',
+     "US/Pacific"  : 'Etc/GMT+7',
+     "US/Alaska"   : 'Etc/GMT+8',
+     "US/Hawaii"   : 'US/Hawaii'
+}
+
+non_dst_timezone_alts = {
+     'US/Eastern'  : 'Etc/GMT+5',
+     "US/Central"  : 'Etc/GMT+6',
+     "US/Mountain" : 'Etc/GMT+7',
+     "US/Pacific"  : 'Etc/GMT+8',
+     "US/Alaska"   : 'Etc/GMT+9',
+     "US/Hawaii"   : 'US/Hawaii'
+}
 
 def parse_nws_actl(req_text, df_airports, airport_name, date_str_last_actl, date_str_retain = None):
      # Get url from table of URLS     
@@ -208,7 +241,10 @@ def parse_nws_actl(req_text, df_airports, airport_name, date_str_last_actl, date
      datetime_last_actl = timezone(tz_str).localize(datetime.strptime(date_str_last_actl, '%Y-%m-%d'))
      
      # Parse the raw HTML
-     df_nws_actl = parse_nws_actl_raw(req_text)
+     df_nws_actl, parse_time_zone = parse_nws_actl_raw(req_text)
+
+     # Is it daylight savings time?
+     is_dst = 'DT' in parse_time_zone.upper()
 
      # Early exit if None
      if df_nws_actl is None:
@@ -246,10 +282,24 @@ def parse_nws_actl(req_text, df_airports, airport_name, date_str_last_actl, date
      df_nws_actl['hour']  = df_nws_actl['time'].apply(lambda x: int(x.split(':')[0]))     
      df_nws_actl['minute']  = df_nws_actl['time'].apply(lambda x: int(x.split(':')[1]))
 
-     # Datetime
+     # Naive Datetime
      df_nws_actl['datetime'] = pd.to_datetime(df_nws_actl[['year', 'month', 'day', 'hour', 'minute']])
-     df_nws_actl['datetime'] = df_nws_actl['datetime'].apply(lambda x: timezone(tz_str).localize(x))
 
+     # Be careful about transitions to DST!
+     if is_dst:
+          tz_str_alt = dst_timezone_alts[tz_str]
+          df_nws_actl['datetime'] = df_nws_actl['datetime'].apply(lambda x: timezone(tz_str_alt).localize(x))
+          df_nws_actl['datetime'] = df_nws_actl['datetime'].apply(lambda x: x.astimezone(tz_str))
+     else:
+          tz_str_alt = non_dst_timezone_alts[tz_str]
+          df_nws_actl['datetime'] = df_nws_actl['datetime'].apply(lambda x: timezone(tz_str_alt).localize(x))
+          df_nws_actl['datetime'] = df_nws_actl['datetime'].apply(lambda x: x.astimezone(tz_str))
+          
+     # ensure matching
+     df_nws_actl['date'] = df_nws_actl['datetime'].apply(lambda x: x.strftime('%d'))
+     df_nws_actl['time'] = df_nws_actl['datetime'].apply(lambda x: x.strftime('%H:%M'))          
+
+          
      # drop the temp columns
      df_nws_actl = df_nws_actl.drop(['year', 'month', 'day', 'hour', 'minute'], axis=1)
 
