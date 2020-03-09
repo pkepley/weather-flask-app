@@ -355,7 +355,46 @@ def pull_save_parse_nws_actl(airport_name, df_airports, out_dir = None):
      return df_nws_actl
 
 
-def midnight_pull_and_save(df_airports, out_root = None):
+def pull_and_save(df_airports, df_airports_to_pull, pull_date_str, out_root = None):
+     # Iterate through list of airports and pull data
+     for i, row in df_airports_to_pull.iterrows():  
+          airport_name = row['icao_designation']
+               
+          # Create output dir for airport if it doesn't exist
+          if out_root is not None and (not os.path.exists(airport_out_dir)):
+               airport_out_dir = os.path.join(out_root, airport_name)               
+               pathlib.Path(airport_out_dir).mkdir(parents=True, exist_ok=True)
+          else:
+               airport_out_dir = None
+          
+          # Pull Forecast
+          try: 
+               print('Attempting to pull forecast for {0}.'.format(airport_name))
+               df_fcst = pull_save_parse_nws_fcst(airport_name, df_airports, pull_date_str, out_dir = airport_out_dir)
+               if df_fcst is not None:
+                    print('Successful fcst pull for {0} on {1}.'.format(airport_name, pull_date_str))
+               else:
+                    print('No fcst result was returned for {0} for {1}.'.format(airport_name, pull_date_str))
+          except:
+               print('Error while pulling fcst for {0}.'.format(airport_name))
+          
+          # Pull actual data
+          try: 
+               print('Attempting to pull actual for {0}.'.format(airport_name))
+               df_actl = pull_save_parse_nws_actl(airport_name, df_airports, out_dir = airport_out_dir)
+               if df_actl is not None:
+                    print('Successful actl pull for {0} on {1}.'.format(airport_name, pull_date_str))
+               else:
+                    print('No actl result was returned for {0} for {1}.'.format(airport_name, pull_date_str))
+          except:
+               print('Error while pulling actl for {0}.'.format(airport_name))
+          
+          # Sleep for a few seconds
+          random_sleep()
+          sys.stdout.flush()
+
+
+def midnight_pull_list(df_airports):
      # What time is it now in our current timezone?
      local_now_datetime    = datetime.now(get_localzone())
      
@@ -369,10 +408,6 @@ def midnight_pull_and_save(df_airports, out_root = None):
      print('Local now ({}) : {}'.format(get_localzone(), local_now_datetime))
      now_datetime_in_tz = [local_now_datetime.astimezone(timezone(tz_str)) for tz_str in us_tz_strs]
      now_hour_in_tz     = [dt.hour for dt in now_datetime_in_tz]
-
-     # Ensure out_root exists
-     if out_root is not None and (not os.path.exists(out_root)):
-          pathlib.Path(out_root).mkdir(parents=True, exist_ok=True)          
      
      # In which timezone is it midnight?
      midnight_hour = 0
@@ -381,45 +416,14 @@ def midnight_pull_and_save(df_airports, out_root = None):
           tz_to_run = us_tz_strs[idx_tz_to_run]
           pull_datetime = now_datetime_in_tz[idx_tz_to_run]
           pull_date_str = pull_datetime.strftime('%Y-%m-%d')
-          print('Will pull Airports with time-zone {0}'.format(tz_to_run))
-          
-     # Pull data for all airports where it's midnight
-     if tz_to_run is not None:
-          # Grab the list if airports for this range
-          df_airports_to_pull = df_airports[df_airports['time_zone'] == tz_to_run]
-          
-          # Iterate through list of airports and pull data
-          for i, row in df_airports_to_pull.iterrows():  
-               airport_name = row['icao_designation']
-               airport_out_dir = os.path.join(out_root, airport_name)
-               
-               # Create output dir for airport if it doesn't exist
-               if out_root is not None and (not os.path.exists(airport_out_dir)):
-                    pathlib.Path(airport_out_dir).mkdir(parents=True, exist_ok=True)                    
+          print('Will update db for airports with time-zone {0}'.format(tz_to_run))
+     else:
+          pull_date_str = None
+     
+     return df_airports[df_airports['time_zone'] == tz_to_run], pull_date_str
 
-               # Pull Forecast
-               try: 
-                    print('Attempting to pull forecast for {0}.'.format(airport_name))
-                    df_fcst = pull_save_parse_nws_fcst(airport_name, df_airports, pull_date_str, out_dir = airport_out_dir)
-                    if df_fcst is not None:
-                         print('Successful fcst pull for {0} on {1}.'.format(airport_name, pull_date_str))
-                    else:
-                         print('No fcst result was returned for {0} for {1}.'.format(airport_name, pull_date_str))
-               except:
-                    print('Error while pulling fcst for {0}.'.format(airport_name))
-                                                                                                                        
-               # Pull actual data
-               try: 
-                    print('Attempting to pull actual for {0}.'.format(airport_name))
-                    df_actl = pull_save_parse_nws_actl(airport_name, df_airports, out_dir = airport_out_dir)
-                    if df_actl is not None:
-                         print('Successful actl pull for {0} on {1}.'.format(airport_name, pull_date_str))
-                    else:
-                         print('No actl result was returned for {0} for {1}.'.format(airport_name, pull_date_str))
-               except:
-                    print('Error while pulling actl for {0}.'.format(airport_name))
           
-               # Sleep for a few seconds
-               random_sleep()
-               sys.stdout.flush()
-
+def midnight_pull_and_save(df_airports, out_root = None):
+     # Grab the list if airports for this range
+     df_airports_to_pull, pull_date_str = midnight_pull_list(df_airports)
+     pull_and_save(df_airports, df_airports_to_pull, pull_date_str, out_root)
