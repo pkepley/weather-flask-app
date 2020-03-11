@@ -8,6 +8,8 @@ from pytz import timezone
 
 from db_setup import weather_db_loc, airport_list_loc
 
+UTC = timezone('UTC')
+
 # Get the original forecast
 def get_fcst(airport_name, date_str = None, date_range_strs = None):
     # Connection to the database
@@ -166,9 +168,9 @@ def get_actl_times(airport_name):
 
 
 def get_fcst_interp(airport_name, date_str = None):
-    df_actl_times = get_actl(airport_name, date_str)    
-    df_fcst = get_fcst(airport_name, date_str = date_str)        
-    
+    df_actl_times = get_actl(airport_name, date_str)
+    df_fcst = get_fcst(airport_name, date_str = date_str)
+
     # All of the unique actual times and forecast pull_dts
     all_actl_tms = pd.Series(df_actl_times.datetime.unique())
     all_pull_dts = pd.Series(df_fcst.pull_date.unique())
@@ -182,29 +184,34 @@ def get_fcst_interp(airport_name, date_str = None):
 
         # must have at least 2 datapoints to interpolate
         try:
-            nt, _ = df_curr_fcst.shape
+            nt_f, _ = df_curr_fcst.shape
+            nt_a, _ = df_actl_times.shape
         except:
-            nt = 0
+            nt_f = 0
+            nt_a = 0
         
-        if nt >= 2:        
+        if nt_f >= 2 and nt_a > 0:        
             # Interpolation range
             t_min = df_curr_fcst['forecast_time_stamps'].min()
-            t_max = df_curr_fcst['forecast_time_stamps'].max()
+            t_min_orig_tzinfo = t_min.tzinfo
+            t_min = t_min.astimezone(UTC)
+            t_max = df_curr_fcst['forecast_time_stamps'].max().astimezone(UTC)
 
             # First applicable date of forecast
-            t_fcst_min = datetime.strptime(pull_dt, '%Y-%m-%d').replace(tzinfo = t_min.tzinfo)
-            
-            df_curr_fcst['seconds_since_min'] = (df_curr_fcst['forecast_time_stamps'] - t_fcst_min)
+            t_fcst_min = datetime.strptime(pull_dt, '%Y-%m-%d').replace(tzinfo = t_min_orig_tzinfo).astimezone(UTC)
+
+            df_curr_fcst['seconds_since_min'] = (df_curr_fcst['forecast_time_stamps'].apply(lambda t: t.astimezone(UTC)) - t_fcst_min)
             df_curr_fcst['seconds_since_min'] = df_curr_fcst['seconds_since_min'].apply(lambda t: t.total_seconds())
             
             # Actual times in seconds to interpolate at
             df_interp = pd.DataFrame({'datetime' : all_actl_tms})
             df_interp['t_fcst_min'] = t_fcst_min
-            df_interp['time_delta'] = (df_interp['datetime'] - t_fcst_min)
+            df_interp['time_delta'] = (df_interp['datetime'].apply(lambda t: t.astimezone(UTC)) - t_fcst_min)
             df_interp['interp_seconds'] = df_interp['time_delta'].apply(lambda x: x.total_seconds())
             df_interp['interp_day'    ] = df_interp['time_delta'].apply(lambda x: x.days)#/ (3600 * 24)
             df_interp['interp_hour'   ] = df_interp['datetime'  ].apply(lambda x: x.hour)
-            df_interp = df_interp[(df_interp['datetime'] >= t_min) & (df_interp['datetime'] <= t_max)]
+            df_interp = df_interp[(df_interp['datetime'].apply(lambda t: t.astimezone(UTC)) >= t_min) &
+                                  (df_interp['datetime'].apply(lambda t: t.astimezone(UTC)) <= t_max)]
             df_interp.reindex()
             df_interp['pull_date'] = pull_dt
             
@@ -239,7 +246,16 @@ def get_fcst_interp(airport_name, date_str = None):
             all_interp_dfs.append(df_interp)
 
     # Append all together
-    df_interp_all = pd.concat(all_interp_dfs)
+    if all_interp_dfs:
+        df_interp_all = pd.concat(all_interp_dfs)
+    else:
+        df_interp_all = pd.DataFrame({
+            'pull_date' : [],  'datetime' : [],
+            'interp_seconds' : [], 'interp_day' : [],
+            'interp_hour' : [],  'fcst_temperature' : [],
+            'fcst_wind_speed' : [], 'fcst_precip_prob':[]
+        })
+        df_interp_all['datetime'] = pd.to_datetime(df_interp_all['datetime'])
 
     return df_interp_all
 
@@ -297,7 +313,7 @@ def get_avf_heatmaps(airport_name):
         columns = 'interp_hour',
         values='avg_wind_speed_delta'
     )
-
+    
     return temp_avf_heatmap_tbl, wind_avf_heatmap_tbl
 
 
