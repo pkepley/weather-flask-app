@@ -10,6 +10,8 @@ from forecast_tools import get_avf_heatmaps, get_fvf_heatmap_csv
 
 from db_setup import weather_db_loc, airport_list_loc
 
+import os
+
 app = Flask(__name__)
 
 def get_db():
@@ -24,7 +26,7 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
-@app.route('/')
+@app.route('/weather-app')
 def airport_dropdown():
     airport_data = pd.read_csv(airport_list_loc)
     airport = airport_data['icao_designation'].values
@@ -39,7 +41,7 @@ def airport_dropdown():
         selected_airport="KORD"
     )
 
-@app.route('/query', methods=['GET'])
+@app.route('/weather-app/query', methods=['GET'])
 def query():
     # Read the airport from the url
     af_type = request.args.get('af_type')
@@ -99,7 +101,7 @@ def query():
     return jsonify(result)
 
 
-@app.route('/avf_heatmap', methods=['GET'])
+@app.route('/weather-app/avf_heatmap', methods=['GET'])
 def get_avf_heatmap():
     airport = request.args.get('airport')    
     temp_heatmap_tbl, _ = get_avf_heatmaps(airport)
@@ -114,7 +116,7 @@ def get_avf_heatmap():
     return temp_heatmap_str
 
 
-@app.route('/fvf_heatmap', methods=['GET'])
+@app.route('/weather-app/fvf_heatmap', methods=['GET'])
 def get_fvf_heatmap():
     airport = request.args.get('airport')    
     fvf_heatmap_flat_csv = get_fvf_heatmap_csv(airport)
@@ -122,4 +124,5 @@ def get_fvf_heatmap():
     return fvf_heatmap_flat_csv
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')
+

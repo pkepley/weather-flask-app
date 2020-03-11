@@ -1,0 +1,13 @@
+[Unit]
+Description=uWSGI instance to serve weatherapp
+After=network.target
+
+[Service]
+User=USERNAMEGOESHERE
+Group=www-data
+WorkingDirectory=/PATH/TO/FLASKAPP/weather-flask-app/
+Environment="PATH=/PATH/TO/MINICONDA/envs/weather-app/bin/"
+ExecStart/PATH/TO/MINICONDA/envs/weather-app/bin/uwsgi --ini weatherapp.ini
+
+[Install]
+WantedBy=multi-user.target

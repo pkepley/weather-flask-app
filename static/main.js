@@ -154,8 +154,8 @@ function makeGraphs(airport){
   div.selectAll('svg').remove();
 
   // query the database in the following places
-  fcst_query_url = "/query?airport=" + airport + "&af_type=fcst";
-  actl_query_url = "/query?airport=" + airport + "&af_type=actl";
+  fcst_query_url = "/weather-app/query?airport=" + airport + "&af_type=fcst";
+  actl_query_url = "/weather-app/query?airport=" + airport + "&af_type=actl";
   
 
   Promise.all([
@@ -380,7 +380,7 @@ function makeAvFHeatMap(airport) {
   var svgs = div.selectAll('svg');
   svgs.remove();
   
-  heatmap_url = "/avf_heatmap?airport=" + airport;
+  heatmap_url = "/weather-app/avf_heatmap?airport=" + airport;
   d3.csv(heatmap_url)
     .then(function(data) {
 
@@ -574,7 +574,7 @@ function makeFvFHeatMap(airport) {
   var svgs = div.selectAll('svg');
   svgs.remove();
   
-  heatmap_url = "/fvf_heatmap?airport=" + airport;
+  heatmap_url = "/weather-app/fvf_heatmap?airport=" + airport;
   d3.csv(heatmap_url)
     .then(function(data) {
       // convert data to numeric 
