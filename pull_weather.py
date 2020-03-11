@@ -361,7 +361,7 @@ def pull_and_save(df_airports, df_airports_to_pull, pull_date_str, out_root = No
           airport_name = row['icao_designation']
                
           # Create output dir for airport if it doesn't exist
-          if out_root is not None and (not os.path.exists(airport_out_dir)):
+          if out_root is not None:
                airport_out_dir = os.path.join(out_root, airport_name)               
                pathlib.Path(airport_out_dir).mkdir(parents=True, exist_ok=True)
           else:
