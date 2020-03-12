@@ -227,7 +227,7 @@ def update_actl_db_from_disk(db_conn, data_input_root, airport_list, actl_dt):
         airport_actl_path = os.path.join(
             data_input_root,
             airport_name,
-            'nws_actual_{0}.csv'.format(actl_dt)
+            'nws_actl_{0}.csv'.format(actl_dt)
         )
 
         # May have gzipped it
@@ -278,6 +278,25 @@ def update_fcst_db_from_disk(db_conn, data_input_root, airport_list, pull_dt):
             df_nws_fcst = pd.read_csv(airport_fcst_path)
             update_nws_fcst_db(db_conn, airport_name, df_nws_fcst, pull_dt)
 
+            
 def update_avf_db_from_list(db_conn, airport_list, fcst_date_str):
     for airport_name in airport_list:        
         update_nws_avf_compare_db(db_conn, airport_name, fcst_date_str)                            
+
+        
+def update_all_db_from_disk(db_conn, df_airports, update_list, last_actl_date_str):
+    # Dates to update
+    last_actl_date_strtime = datetime.strptime(last_actl_date_str, '%Y-%m-%d')
+    pull_datetime = last_actl_date_strtime + timedelta(days = 1)
+    pull_date = pull_datetime.strftime('%Y-%m-%d')
+
+    # Update db's:
+    update_actl_db_from_disk(db_conn, data_input_root, update_list,
+                             last_actl_date_str)
+    
+    update_fcst_db_from_disk(db_conn, data_input_root, update_list,
+                             pull_date)
+    
+    update_avf_db_from_list(db_conn, update_list, last_actl_date_str)
+    
+    

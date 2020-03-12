@@ -393,19 +393,25 @@ def pull_and_save(df_airports, df_airports_to_pull, pull_date_str, out_root = No
           random_sleep()
           sys.stdout.flush()
 
-
+          
 def midnight_pull_list(df_airports):
+     # what time zone is it midnight in?
+     tz_to_run, pull_date_str = midnight_time_zone()
+
+     return df_airports[df_airports['time_zone'] == tz_to_run], pull_date_str
+
+
+def midnight_time_zone():
      # What time is it now in our current timezone?
-     local_now_datetime    = datetime.now(get_localzone())
+     local_now_datetime = datetime.now(get_localzone())
      
      # Set up US timezones
      us_tz_strs = ["US/Eastern", "US/Central", "US/Mountain",  "US/Pacific",  "US/Alaska", "US/Hawaii"]
 
      # Timezone to run (ie where it's midnight)
      tz_to_run = None
-     
+          
      # Print local zone:
-     print('Local now ({}) : {}'.format(get_localzone(), local_now_datetime))
      now_datetime_in_tz = [local_now_datetime.astimezone(timezone(tz_str)) for tz_str in us_tz_strs]
      now_hour_in_tz     = [dt.hour for dt in now_datetime_in_tz]
      
@@ -420,9 +426,9 @@ def midnight_pull_list(df_airports):
      else:
           pull_date_str = None
      
-     return df_airports[df_airports['time_zone'] == tz_to_run], pull_date_str
+     return tz_to_run, pull_date_str
 
-          
+
 def midnight_pull_and_save(df_airports, out_root = None):
      # Grab the list if airports for this range
      df_airports_to_pull, pull_date_str = midnight_pull_list(df_airports)
