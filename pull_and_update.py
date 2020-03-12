@@ -15,7 +15,7 @@ midnight_pull_and_save(df_airports, out_root = data_input_root)
 tz_to_run, pull_date_str = midnight_time_zone()
 if pull_date_str is not None:
     pull_date_datetime = datetime.strptime(pull_date_str, '%Y-%m-%d')
-    last_actl_datetime = last_actl_date_datetime + timedelta(days = 1)
+    last_actl_datetime = pull_date_datetime + timedelta(days = -1)
     last_actl_date_str = last_actl_datetime.strftime('%Y-%m-%d')
 else:
     last_actl_date_str = None
