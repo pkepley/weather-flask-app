@@ -138,7 +138,7 @@ function makeSvg(dataFcst, dataActl, svgParent, rangeParams, plotNamesFcst, plot
 }
 
 
-function makeGraphs(airport){
+function makeGraphs(airport, start_date_str, end_date_str){
   const margin = 30;
   const width  = 600 - 2 * margin;
   const height =  250 - 2 * margin;
@@ -154,9 +154,8 @@ function makeGraphs(airport){
   div.selectAll('svg').remove();
 
   // query the database in the following places
-  fcst_query_url = "/weather-app/query?airport=" + airport + "&af_type=fcst";
-  actl_query_url = "/weather-app/query?airport=" + airport + "&af_type=actl";
-  
+  fcst_query_url = "/weather-app/query?airport=" + airport + "&af_type=fcst" + "&start_date_str=" + start_date_str + "&end_date_str=" + end_date_str;
+  actl_query_url = "/weather-app/query?airport=" + airport + "&af_type=actl" + "&start_date_str=" + start_date_str + "&end_date_str=" + end_date_str;
 
   Promise.all([
     d3.json(fcst_query_url),
@@ -599,8 +598,20 @@ function updatePage() {
   var airport_elt = document.getElementById("airport_list");
   airport = airport_elt.value;
 
+  // Define date range to pull.
+  var now_date = new Date();
+  var now_date_str = now_date.toISOString().split('T')[0];
+        
+  var start_date = new Date();
+  start_date.setDate(now_date.getDate()-14);
+  var start_date_str = start_date.toISOString().split('T')[0];
+
+  var end_date = new Date();
+  end_date.setDate(now_date.getDate()+7);
+  var end_date_str = end_date.toISOString().split('T')[0];
+        
   // make some line graphs
-  makeGraphs(airport);
+  makeGraphs(airport, start_date_str, end_date_str);
       
   // add avf heatmap plot
   makeAvFHeatMap(airport);

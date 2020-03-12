@@ -46,7 +46,11 @@ def query():
     # Read the airport from the url
     af_type = request.args.get('af_type')
     airport = request.args.get('airport')
+    start_date_str = request.args.get('start_date_str')
+    end_date_str   = request.args.get('end_date_str')    
 
+    print(start_date_str, end_date_str)
+    
     if af_type is None:
         af_type = 'fcst'
     
@@ -57,7 +61,7 @@ def query():
     c  = db.cursor()
 
     if af_type in ('fcst','forecast'):
-        query_params = (airport,)        
+        query_params = (airport, start_date_str, end_date_str)        
         query = c.execute(        
             '''
             SELECT 
@@ -68,13 +72,15 @@ def query():
             ,temperature_hourly
             FROM weather_fcst 
             WHERE airport_name = ?
+              AND pull_date >= ?
+              AND pull_date <= ?
             ORDER BY pull_date, forecast_time_stamps
             ''',
             query_params
         )
 
     elif af_type in ('actl','actual'):
-        query_params = (airport,)        
+        query_params = (airport, start_date_str, end_date_str)        
         query = c.execute(        
             '''
             SELECT 
@@ -85,6 +91,8 @@ def query():
             ,air_temp
             FROM weather_actl 
             WHERE airport_name = ?
+              AND datetime >= ?
+              AND datetime <= ?
             ORDER BY datetime
             ''',
             query_params
