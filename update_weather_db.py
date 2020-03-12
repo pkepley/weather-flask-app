@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from pytz import timezone
 from forecast_tools import get_avf_compare, get_fcst, get_actl
-from pull_weather import midnight_pull_list
+
 
 def check_table_exists(db_conn, table_name):
     # Cursor
@@ -284,7 +284,8 @@ def update_avf_db_from_list(db_conn, airport_list, fcst_date_str):
         update_nws_avf_compare_db(db_conn, airport_name, fcst_date_str)                            
 
         
-def update_all_db_from_disk(db_conn, df_airports, update_list, last_actl_date_str):
+def update_all_db_from_disk(db_conn, data_input_root, df_airports, 
+                            update_list, last_actl_date_str):
     # Dates to update
     last_actl_date_strtime = datetime.strptime(last_actl_date_str, '%Y-%m-%d')
     pull_datetime = last_actl_date_strtime + timedelta(days = 1)

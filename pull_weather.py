@@ -394,11 +394,14 @@ def pull_and_save(df_airports, df_airports_to_pull, pull_date_str, out_root = No
           sys.stdout.flush()
 
           
-def midnight_pull_list(df_airports):
+def midnight_pull_df(df_airports):
      # what time zone is it midnight in?
      tz_to_run, pull_date_str = midnight_time_zone()
 
-     return df_airports[df_airports['time_zone'] == tz_to_run], pull_date_str
+     # List of airports to pull
+     df_airports_to_pull = df_airports[df_airports['time_zone'] == tz_to_run]
+     
+     return  df_airports_to_pull, pull_date_str
 
 
 def midnight_time_zone():
@@ -431,5 +434,5 @@ def midnight_time_zone():
 
 def midnight_pull_and_save(df_airports, out_root = None):
      # Grab the list if airports for this range
-     df_airports_to_pull, pull_date_str = midnight_pull_list(df_airports)
+     df_airports_to_pull, pull_date_str = midnight_pull_df(df_airports)
      pull_and_save(df_airports, df_airports_to_pull, pull_date_str, out_root)
