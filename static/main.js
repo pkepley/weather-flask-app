@@ -8,6 +8,94 @@ function strCastToNum(v){
 }
 
 
+function updateSlider(x, h, handle) {
+    // update position and text of label according to slider scale
+    handle.attr("cx", x(h))
+        .attr("date_str", d3.timeFormat("%Y-%m-%d")(h));
+}
+
+function makeSlider(startDate, endDate){
+  const margin = 30;
+  const width  = 600 - 2 * margin;
+  const height = 100 - 2 * margin;
+
+  const marginParams = {
+    margin : margin,
+    width  : width,
+    height : height
+  }
+
+  var parseDate = d3.timeParse("%d-%b-%y");
+  var formatDate = d3.timeFormat("%Y-%m");
+
+  var dateArray = d3.timeYears(startDate, d3.timeYear.offset(endDate, 1));
+    
+  // x scale for time
+  var x = d3.scaleTime()
+        .domain([startDate, endDate])
+        .range([0, width])
+        .clamp(true);
+    
+  //Based off of:
+  //https://bl.ocks.org/officeofjane/f132634f67b114815ba686484f9f7a77
+  var currentValue = endDate;
+  var div = d3.select('#slider_div');      
+
+  var svg = div.append('svg')
+      .attr('width',  width  + 2 * margin)
+      .attr('height', height + 2 * margin);
+    
+    var slider = svg.append('g')
+	.attr("class", "slider")    
+	.attr('transform',
+	      `translate(${margin}, ${margin})`);
+
+    var handle = slider.insert("circle", ".track-overlay")
+        .attr("class", "handle")
+        .attr("r", 9);
+
+    slider.append("line")
+        .attr("class", "track")
+        .attr("x1", x.range()[0])
+        .attr("x2", x.range()[1])
+	.select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+        .attr("class", "track-inset")
+	.select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+        .attr("class", "track-overlay")
+        .call(d3.drag()
+	      .on("start.interrupt", function() { slider.interrupt(); })
+	      .on("start drag", function() {
+		  currentValue = d3.event.x;		  
+		  updateSlider(x, x.invert(currentValue), handle);
+	      })
+	      .on("end", function() {
+		  currentValue = d3.event.x;
+		  updateLineCharts(x.invert(currentValue));
+		  console.log(d3.event.x);
+		  console.log(x.invert(currentValue));
+	      })
+	     );
+
+    slider.insert("g", ".track-overlay")
+        .attr("class", "ticks")
+        .attr("transform", "translate(0," + 18 + ")")
+	.selectAll("text")
+        .data(x.ticks(10))
+        .enter()
+        .append("text")
+        .attr("x", x)
+        .attr("y", 10)
+        .attr("text-anchor", "middle")
+        .text(function(d) { return formatDate(d); });
+
+    // slet slider initial position
+    updateSlider(x, endDate, handle)
+
+    return slider;
+}
+
+
+
 function makeTable(data){
   var titles = d3.keys(data[0]);    
   var div = d3.select('#table_div');
@@ -593,23 +681,44 @@ function makeFvFHeatMap(airport) {
       
 }
 
+function datesStrFromSlider(){
+  var selected_date_str = d3.select('#slider_div').select("circle").attr("date_str");
+  var selected_date = d3.timeParse("%Y-%m-%d")(selected_date_str);
+
+  // First day is two weeks prior to selected date    
+  var start_date = new Date(selected_date.getTime());
+  start_date.setDate(start_date.getDate()-14);
+  var start_date_str = d3.timeFormat("%Y-%m-%d")(start_date);
+
+  // Last day is one week past selected date
+  var end_date = new Date(selected_date.getTime());
+  end_date.setDate(end_date.getDate()+7);
+  var end_date_str = d3.timeFormat("%Y-%m-%d")(end_date);    
+
+  return {"start_date_str" : start_date_str, "end_date_str" : end_date_str}
+    
+}
+
+function updateLineCharts() {
+  // Define date range to pull.
+  var date_strs = datesStrFromSlider();
+  var start_date_str = date_strs['start_date_str'];
+  var end_date_str = date_strs['end_date_str'];    
+
+  // make some line graphs
+  makeGraphs(airport, start_date_str, end_date_str);    
+}
+
 
 function updatePage() {
   var airport_elt = document.getElementById("airport_list");
   airport = airport_elt.value;
 
   // Define date range to pull.
-  var now_date = new Date();
-  var now_date_str = now_date.toISOString().split('T')[0];
-        
-  var start_date = new Date();
-  start_date.setDate(now_date.getDate()-14);
-  var start_date_str = start_date.toISOString().split('T')[0];
-
-  var end_date = new Date();
-  end_date.setDate(now_date.getDate()+7);
-  var end_date_str = end_date.toISOString().split('T')[0];
-        
+  var date_strs = datesStrFromSlider();
+  var start_date_str = date_strs['start_date_str'];
+  var end_date_str = date_strs['end_date_str'];    
+    
   // make some line graphs
   makeGraphs(airport, start_date_str, end_date_str);
       
@@ -618,4 +727,28 @@ function updatePage() {
 
   // add fvf heatmap plot
   makeFvFHeatMap(airport);  
+}
+
+function onLoadPage(){
+    // Hard coded date, first date I pulled
+    var startDate = new Date("2019-08-25");
+
+    // Most recent date
+    var endDate = new Date();
+    
+    makeSlider(startDate, endDate);
+
+    // // Define date range to pull.
+    // var now_date = new Date();
+    // var now_date_str = now_date.toISOString().split('T')[0];
+    
+    // var start_date = new Date();
+    // start_date.setDate(now_date.getDate()-14);
+    // var start_date_str = start_date.toISOString().split('T')[0];
+    
+    // var end_date = new Date();
+    // end_date.setDate(now_date.getDate()+7);
+    // var end_date_str = end_date.toISOString().split('T')[0];
+    
+    updatePage();
 }

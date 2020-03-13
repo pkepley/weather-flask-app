@@ -4,8 +4,9 @@
     <title>Weather Forecast Comparison</title>
     <script src="/static/main.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
+    <link rel="stylesheet" href="/static/slider.css">
   </head>
-  <body onload="updatePage()">
+  <body onload="onLoadPage()">
     <div id="selection_div">
       <select id=airport_list name=airport onchange="updatePage()">
 	{% for airport in airport %}
@@ -15,6 +16,7 @@
       <!--<button onclick="updatePage()">Render</button>-->
     </div>
     <br>
+    <div id="slider_div"></div>
     <div id="graph_div" width="1000px" height="600px"></div>
     <div id="table_div"></div>
     <div id="avf_heatmap_div" width="1000px" height="600px"></div>
