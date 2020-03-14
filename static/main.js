@@ -88,7 +88,7 @@ function makeSlider(startDate, endDate){
         .attr("text-anchor", "middle")
         .text(function(d) { return formatDate(d); });
 
-    // slet slider initial position
+    // set slider initial position
     updateSlider(x, endDate, handle)
 
     return slider;
@@ -131,7 +131,8 @@ function makeTable(data){
     });
 }
 
-function makeSvg(dataFcst, dataActl, svgParent, rangeParams, plotNamesFcst, plotNamesActl, parseTime, group_labels, marginParams, titleString) {
+
+function updateSvg(dataFcst, svgID, dataActl, svgParent, rangeParams, plotNamesFcst, plotNamesActl, parseTime, group_labels, marginParams, titleString) {
   const margin = marginParams['margin'],
 	height = marginParams['height'],
 	width  = marginParams['width'];
@@ -163,35 +164,41 @@ function makeSvg(dataFcst, dataActl, svgParent, rangeParams, plotNamesFcst, plot
       .y(function (d) {
   	return yScale(d[plotNamesActl.yName]);
       });
-  
-  var svg = svgParent.append('svg')
-      .attr('width',  width  + 2 * margin)
-      .attr('height', height + 2 * margin)
-      .append('g')
-      .attr('transform',
-	    `translate(${margin}, ${margin})`);
 
+  svg = d3.select("#" + svgID);
+
+  var gs = svg.selectAll('g');
+  gs.remove();      
+
+  svg = svg.append('g')
+     .attr('transform',
+           `translate(${margin}, ${margin})`);
+    
   svg.append('text')
     .attr('x', 0)
     .attr('y', 0 - (margin / 2))
     .attr('text-anchor', 'left')
     .style('font-size', '16px')
     .text(titleString);
-  
+    
+    
   svg.append('g')
     .attr('class', 'x axis')
-    .attr('transform', `translate(0, ${height})`)  
+    .attr('transform', `translate(0, ${height})`)
     .call(d3.axisBottom(xScale)
 	  .ticks(d3.timeDay.every( Math.floor(group_labels.length / 7)) )
 	  .tickFormat(d3.timeFormat("%b-%d"))
-	 );
+    );
 
   svg.append('g')
     .attr('class', 'y axis')
-    .attr('transform', `translate(0,0)`)    
-    .call(d3.axisLeft(yScale));    
+    .attr('transform', `translate(0,0)`)
+    .call(d3.axisLeft(yScale));
 
   // plot all the forecast dates
+  g_fcst = svg.append('g').attr('class', 'g_fcst');
+  g_actl = svg.append('g').attr('class', 'g_actl');
+    
   for (var i = 0; i < group_labels.length; i++){
     pull_date = group_labels[i];
 
@@ -199,9 +206,9 @@ function makeSvg(dataFcst, dataActl, svgParent, rangeParams, plotNamesFcst, plot
       return ((d['pull_date'] == pull_date) && !!d[plotNamesFcst.yName] && !isNaN(d[plotNamesFcst.yName]));
     })
 
-    svg.append('path')
+    g_fcst.append('path')
       .data([data_date])
-      .attr('class', `line_temperature-${i}`)
+      .attr('class', `line_fcst_${i}`)
       .attr('fill', 'none')
       .attr('stroke', colorScale(i))
       .attr('stroke-width', 2)
@@ -210,17 +217,32 @@ function makeSvg(dataFcst, dataActl, svgParent, rangeParams, plotNamesFcst, plot
 
   // plot actual data if it has been provided
   if (dataActl != null) {
-    svg.append('path')
+    g_actl.append('path')
       .data([dataActl.filter( function (d) {
 	return (parseTime(d[plotNamesActl.xName]) > rangeParams['xMin']) ;
       })])
       .attr('class',  'line_actual')
       .attr('fill',   'none')
       .attr('stroke', 'black')
-      .attr('stroke-opacity', .5)
+      .attr('stroke-opacity', 0.5)
       .attr('stroke-width',   1.7)
       .attr('d', valueLineActl);
   }
+
+  return svg;
+}
+
+function makeSvg(dataFcst, svgID, dataActl, svgParent, rangeParams, plotNamesFcst, plotNamesActl, parseTime, group_labels, marginParams, titleString) {
+  const margin = marginParams['margin'],
+	height = marginParams['height'],
+	width  = marginParams['width'];
+    
+  var svg = svgParent.append('svg')
+      .attr('width',  width  + 2 * margin)
+      .attr('height', height + 2 * margin)
+      .attr('id', svgID);
+
+  svg = updateSvg(dataFcst, svgID, dataActl, svgParent, rangeParams, plotNamesFcst, plotNamesActl, parseTime, group_labels, marginParams, titleString)
     
   return svg;
 }
@@ -238,8 +260,6 @@ function makeGraphs(airport, start_date_str, end_date_str){
   }
   
   var div = d3.select('#graph_div');      
-  div.selectAll('br').remove();
-  div.selectAll('svg').remove();
 
   // query the database in the following places
   fcst_query_url = "/weather-app/query?airport=" + airport + "&af_type=fcst" + "&start_date_str=" + start_date_str + "&end_date_str=" + end_date_str;
@@ -275,7 +295,7 @@ function makeGraphs(airport, start_date_str, end_date_str){
     plotNamesActl = {xName : 'datetime', yName : 'air_temp'};      
     tempRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 120};
     titleString = 'Temperature Forecast Comparison';
-    svgTemp   = makeSvg(dataFcst, dataActl, div, tempRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
+    svgTemp   = makeSvg(dataFcst, "svg_temp", dataActl, div, tempRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
     div.append('br');
     
     //Make Precipitation Probability Chart
@@ -283,7 +303,7 @@ function makeGraphs(airport, start_date_str, end_date_str){
     plotNamesActl   = {xName : 'datetime', yName : 'precip_1_hour'};
     precipRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 100};
     titleString = 'Precipitation Probability Forecast Comparison';
-    svgPrecip   = makeSvg(dataFcst, null, div, precipRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
+    svgPrecip   = makeSvg(dataFcst, "svg_precip", null, div, precipRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
     div.append('br');
     
     // Make Wind-speed chart
@@ -291,9 +311,77 @@ function makeGraphs(airport, start_date_str, end_date_str){
     plotNamesActl = {xName : 'datetime', yName : 'wind_speed'};          
     tempRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 30};
     titleString = 'Wind Speed Forecast Comparison';
-    svgTemp   = makeSvg(dataFcst, dataActl, div, tempRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
+    svgWind   = makeSvg(dataFcst, "svg_wind", dataActl, div, tempRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
   });
 }
+
+function updateGraphs(airport, start_date_str, end_date_str){
+  const margin = 30;
+  const width  = 600 - 2 * margin;
+  const height =  250 - 2 * margin;
+
+  const marginParams = {
+    margin : margin,
+    width  : width,
+    height : height
+  }
+  
+  var div = d3.select('#graph_div');
+
+  // query the database in the following places
+  fcst_query_url = "/weather-app/query?airport=" + airport + "&af_type=fcst" + "&start_date_str=" + start_date_str + "&end_date_str=" + end_date_str;
+  actl_query_url = "/weather-app/query?airport=" + airport + "&af_type=actl" + "&start_date_str=" + start_date_str + "&end_date_str=" + end_date_str;
+
+  Promise.all([
+    d3.json(fcst_query_url),
+    d3.json(actl_query_url),
+  ]).then(function(data) {
+
+    // obtain the data
+    dataFcst = data[0];
+    dataActl = data[1];
+
+    // get the max and min times from the forecast data
+    var parseTime = d3.isoParse;  
+    var times = dataFcst.map(function(d) {
+      return parseTime(d.forecast_time_stamps);
+    });
+    var minTime = d3.min(times);
+    var maxTime = d3.max(times);
+    
+    var distinct_fcsts = [];
+    for (var i = 0; i < dataFcst.length; i++) {
+      if (!(distinct_fcsts.includes(dataFcst[i].pull_date))) {
+	distinct_fcsts.push(dataFcst[i].pull_date);
+      }
+    }
+    distinct_fcsts.sort();
+    
+    // Make Temperature chart
+    plotNamesFcst = {xName : 'forecast_time_stamps', yName : 'temperature_hourly'};
+    plotNamesActl = {xName : 'datetime', yName : 'air_temp'};      
+    tempRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 120};
+    titleString = 'Temperature Forecast Comparison';
+    svgTemp   = updateSvg(dataFcst, "svg_temp", dataActl, div, tempRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
+    //div.append('br');
+    
+    //Make Precipitation Probability Chart
+    plotNamesFcst   = {xName : 'forecast_time_stamps', yName : 'probability_of_precipitation_floating'};
+    plotNamesActl   = {xName : 'datetime', yName : 'precip_1_hour'};
+    precipRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 100};
+    titleString = 'Precipitation Probability Forecast Comparison';
+    svgPrecip   = updateSvg(dataFcst, "svg_precip", null, div, precipRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
+    //div.append('br');
+    
+    // Make Wind-speed chart
+    plotNamesFcst = {xName : 'forecast_time_stamps', yName : 'wind_speed_sustained'};
+    plotNamesActl = {xName : 'datetime', yName : 'wind_speed'};          
+    tempRange = {xMin : minTime, xMax : maxTime, yMin : 0, yMax : 30};
+    titleString = 'Wind Speed Forecast Comparison';
+    svgWind   = updateSvg(dataFcst, "svg_wind", dataActl, div, tempRange, plotNamesFcst, plotNamesActl, parseTime, distinct_fcsts, marginParams, titleString);
+  });
+}
+
 
 
 function makeAvFHeatMapSvg(data, svgParent, marginParams, titleString) {
@@ -706,11 +794,30 @@ function updateLineCharts() {
   var end_date_str = date_strs['end_date_str'];    
 
   // make some line graphs
-  makeGraphs(airport, start_date_str, end_date_str);    
+  updateGraphs(airport, start_date_str, end_date_str);    
 }
 
 
 function updatePage() {
+  var airport_elt = document.getElementById("airport_list");
+  airport = airport_elt.value;
+
+  // Define date range to pull.
+  var date_strs = datesStrFromSlider();
+  var start_date_str = date_strs['start_date_str'];
+  var end_date_str = date_strs['end_date_str'];    
+    
+  // make some line graphs
+  updateGraphs(airport, start_date_str, end_date_str);
+      
+  // add avf heatmap plot
+  makeAvFHeatMap(airport);
+
+  // add fvf heatmap plot
+  makeFvFHeatMap(airport);  
+}
+
+function makePage() {
   var airport_elt = document.getElementById("airport_list");
   airport = airport_elt.value;
 
@@ -728,6 +835,7 @@ function updatePage() {
   // add fvf heatmap plot
   makeFvFHeatMap(airport);  
 }
+
 
 function onLoadPage(){
     // Hard coded date, first date I pulled
@@ -750,5 +858,5 @@ function onLoadPage(){
     // end_date.setDate(now_date.getDate()+7);
     // var end_date_str = end_date.toISOString().split('T')[0];
     
-    updatePage();
+    makePage();
 }
