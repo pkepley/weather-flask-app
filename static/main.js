@@ -818,8 +818,9 @@ function updatePage() {
 }
 
 function makePage() {
-  var airport_elt = document.getElementById("airport_list");
-  airport = airport_elt.value;
+    var airport_elt = document.getElementById("airport_list");
+    airport_elt.value = 'KORD';
+    airport = airport_elt.value;
 
   // Define date range to pull.
   var date_strs = datesStrFromSlider();
