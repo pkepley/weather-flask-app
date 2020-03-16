@@ -50,10 +50,6 @@ function makeSlider(startDate, endDate){
 	.attr('transform',
 	      `translate(${margin}, ${margin})`);
 
-    var handle = slider.insert("circle", ".track-overlay")
-        .attr("class", "handle")
-        .attr("r", 9);
-
     slider.append("line")
         .attr("class", "track")
         .attr("x1", x.range()[0])
@@ -87,7 +83,11 @@ function makeSlider(startDate, endDate){
         .attr("y", 10)
         .attr("text-anchor", "middle")
         .text(function(d) { return formatDate(d); });
-
+    
+    var handle = slider.insert("circle", ".track-overlay")
+        .attr("class", "handle")
+        .attr("r", 9);
+    
     // set slider initial position
     updateSlider(x, endDate, handle)
 
