@@ -258,26 +258,6 @@ def update_fcst_db_from_disk(db_conn, data_input_root, airport_list, pull_dt):
             df_nws_fcst = pd.read_csv(airport_fcst_path)
             update_nws_fcst_db(db_conn, airport_name, df_nws_fcst, pull_dt)
 
-
-def update_fcst_db_from_disk(db_conn, data_input_root, airport_list, pull_dt):
-    # Load data for each airport
-    for airport_name in airport_list:    
-        # Expected location for the airport's forecast
-        airport_fcst_path = os.path.join(
-            data_input_root,
-            airport_name,
-            'nws_fcst_{0}.csv'.format(pull_dt)
-        )
-
-        # May have gzipped it
-        if not os.path.exists(airport_fcst_path):
-            airport_fcst_path = airport_fcst_path + '.gz'
-
-        # Update dB
-        if os.path.exists(airport_fcst_path):
-            df_nws_fcst = pd.read_csv(airport_fcst_path)
-            update_nws_fcst_db(db_conn, airport_name, df_nws_fcst, pull_dt)
-
             
 def update_avf_db_from_list(db_conn, airport_list, fcst_date_str):
     for airport_name in airport_list:        
