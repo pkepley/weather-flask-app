@@ -61,13 +61,20 @@ function makeSlider(startDate, endDate){
         .call(d3.drag()
 	      .on("start.interrupt", function() { slider.interrupt(); })
 	      .on("start drag", function() {
-		  currentValue = d3.event.x;		  
-		  updateSlider(x, x.invert(currentValue), handle);
+		  currentValue = d3.event.x;
+		  floorDate = d3.timeDay.floor(x.invert(currentValue));
+		  currentValue = x(floorDate);
+		  //updateSlider(x, x.invert(currentValue), handle);
+		  updateSlider(x, floorDate, handle);
 	      })
 	      .on("end", function() {
 		  currentValue = d3.event.x;
-		  updateLineCharts(x.invert(currentValue));
-		  console.log(d3.event.x);
+		  floorDate = d3.timeDay.floor(x.invert(currentValue));
+		  currentValue = x(floorDate);
+		  
+		  //updateLineCharts(x.invert(currentValue));
+		  updateLineCharts(floorDate);
+		  //console.log(d3.event.x);
 		  console.log(x.invert(currentValue));
 	      })
 	     );
@@ -136,19 +143,24 @@ function updateSvg(dataFcst, svgID, dataActl, svgParent, rangeParams, plotNamesF
   const margin = marginParams['margin'],
 	height = marginParams['height'],
 	width  = marginParams['width'];
-  
+
+  var xAxisWidth = 0.9 * width;
+
+  var minDate = d3.timeDay.floor(rangeParams['xMin']);
+  var maxDate = d3.timeDay.ceil(rangeParams['xMax']);
+  var nDays   = Math.ceil((maxDate - minDate) / (1000 * 3600 * 24));
+        
   var xScale = d3.scaleTime()
-      .domain([rangeParams['xMin'], rangeParams['xMax']])
-      .range([0, width]);
+      .domain([minDate, maxDate])
+      .range([0, xAxisWidth]);
 
   var yScale = d3.scaleLinear()
       .domain([rangeParams['yMin'], rangeParams['yMax']])
       .range([height, 0]);
 
-  var colorScale = d3.scaleLinear()
-      .domain([0, group_labels.length])
-      .range(['lightblue', 'darkblue']);  
-
+  var colorScale =  d3.scaleSequential(d3["interpolateBlues"])
+      .domain([-2, nDays+1]);
+    
   var valueLineFcst = d3.line()
       .x(function (d) {
 	return xScale(parseTime(d[plotNamesFcst.xName]));
@@ -181,13 +193,12 @@ function updateSvg(dataFcst, svgID, dataActl, svgParent, rangeParams, plotNamesF
     .style('font-size', '16px')
     .text(titleString);
     
-    
   svg.append('g')
     .attr('class', 'x axis')
     .attr('transform', `translate(0, ${height})`)
-    .call(d3.axisBottom(xScale)
-	  .ticks(d3.timeDay.every( Math.floor(group_labels.length / 7)) )
-	  .tickFormat(d3.timeFormat("%b-%d"))
+      .call(d3.axisBottom(xScale)
+      .ticks(nDays)
+      .tickFormat(d3.timeFormat("%b-%d"))
     );
 
   svg.append('g')
@@ -224,11 +235,71 @@ function updateSvg(dataFcst, svgID, dataActl, svgParent, rangeParams, plotNamesF
       .attr('class',  'line_actual')
       .attr('fill',   'none')
       .attr('stroke', 'black')
-      .attr('stroke-opacity', 0.5)
-      .attr('stroke-width',   1.7)
+      .attr('stroke-opacity', 1.0)
+      .attr('stroke-width',   2.0)
       .attr('d', valueLineActl);
   }
 
+  var legendWidth = 10;
+  var legendLeft = xAxisWidth + 10;
+  var legendRight = legendLeft + legendWidth;
+  var legendTop  = 0.125 * height;
+  var legendHeight = 0.75 * height;  
+
+  var svgDefs = svg.append('defs');
+
+  var mainGradient = svgDefs
+      .append('linearGradient')
+      .attr('id', svgID + '_gradient')
+      .attr("x1", "100%")
+      .attr("y1", "100%")
+      .attr("x2", "100%")
+      .attr("y2", "0%")
+      .attr("spreadMethod", "pad")
+  ;
+
+  for (i = 0; i < nDays; i++) {
+    mainGradient.append('stop')
+      .style('stop-color', colorScale(i))
+      .attr('offset', 100 * (i / nDays) + "%")
+      .attr('stop-opacity', 1);
+      
+    mainGradient.append('stop')
+      .style('stop-color', colorScale(i))
+	  .attr('offset', (100 * (i+1) / nDays)*.99 + "%")
+      .attr('stop-opacity', 1)      ;    
+  }
+
+  svg.append('text')
+    .attr('x', legendLeft)
+    .attr('y', legendTop - 15)
+    .attr('text-anchor', 'left')
+    .style('font-size', '10px')
+    .text("Forecast date");
+    
+  // Use the gradient to set the shape fill, via CSS.   
+  svg.append('rect')
+    .classed('filled', true)
+    .style('fill', 'url(#' + svgID + '_gradient)')  
+    .attr('x', legendLeft)
+    .attr('y', legendTop)
+    .attr('width', 10)
+    .attr('height', legendHeight);
+
+  var legendScale = d3.scaleTime()
+      .domain([minDate, maxDate])
+      .range([legendHeight, 0]);
+    
+  var legend_axis = d3.axisRight()
+      .scale(legendScale)
+      .ticks(nDays)
+      .tickFormat(d3.timeFormat('%b-%d'));
+
+  svg.append("g")
+    .attr('transform', `translate(${legendRight}, ${legendTop})`)  
+    .call(legend_axis);
+    
+    
   return svg;
 }
 
@@ -250,7 +321,7 @@ function makeSvg(dataFcst, svgID, dataActl, svgParent, rangeParams, plotNamesFcs
 
 function makeGraphs(airport, start_date_str, end_date_str){
   const margin = 30;
-  const width  = 600 - 2 * margin;
+  const width  = 675 - 2 * margin;
   const height =  250 - 2 * margin;
 
   const marginParams = {
@@ -317,7 +388,7 @@ function makeGraphs(airport, start_date_str, end_date_str){
 
 function updateGraphs(airport, start_date_str, end_date_str){
   const margin = 30;
-  const width  = 600 - 2 * margin;
+  const width  = 675 - 2 * margin;
   const height =  250 - 2 * margin;
 
   const marginParams = {
@@ -780,7 +851,7 @@ function datesStrFromSlider(){
 
   // Last day is one week past selected date
   var end_date = new Date(selected_date.getTime());
-  end_date.setDate(end_date.getDate()+7);
+  end_date.setDate(end_date.getDate());
   var end_date_str = d3.timeFormat("%Y-%m-%d")(end_date);    
 
   return {"start_date_str" : start_date_str, "end_date_str" : end_date_str}

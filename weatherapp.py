@@ -72,8 +72,8 @@ def query():
             ,temperature_hourly
             FROM weather_fcst 
             WHERE airport_name = ?
-              AND pull_date >= ?
-              AND pull_date <= ?
+              AND forecast_time_stamps >= ?
+              AND forecast_time_stamps <= ?
             ORDER BY pull_date, forecast_time_stamps
             ''',
             query_params
