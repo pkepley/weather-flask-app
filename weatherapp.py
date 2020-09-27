@@ -1,7 +1,8 @@
 import os
 from flask import (    
     Flask, render_template, escape,
-    request, g, jsonify, url_for
+    request, g, jsonify, url_for,
+    send_from_directory
 )
 import sqlite3
 import pandas as pd
@@ -130,6 +131,10 @@ def get_fvf_heatmap():
     fvf_heatmap_flat_csv = get_fvf_heatmap_csv(airport)
     
     return fvf_heatmap_flat_csv
+
+@app.route('/weather-app/static/<path:path>', methods=['GET'])
+def get_static(path):
+    return send_from_directory('static', path)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
