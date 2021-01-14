@@ -83,7 +83,7 @@ function makeSlider(startDate, endDate){
         .attr("class", "ticks")
         .attr("transform", "translate(0," + 18 + ")")
 	.selectAll("text")
-        .data(x.ticks(10))
+        .data(x.ticks(7))
         .enter()
         .append("text")
         .attr("x", x)
@@ -459,15 +459,15 @@ function makeAvFHeatMapSvg(data, svgParent, marginParams, titleString) {
   const margin = marginParams['margin'],
 	height = marginParams['height'],
 	width  = marginParams['width'],
-	square_size = Math.min((width - 70) / 24, height / 7);
+	square_size = Math.min((width - 70) / 24, height / 6);
   
   var xScale = d3.scaleLinear()
       .domain([0, 23])
       .range([0, 24 * square_size]);
 
   var yScale = d3.scaleLinear()
-      .domain([0, 6])
-      .range([0, 7 * square_size]);
+      .domain([0, 5])
+      .range([0, 6 * square_size]);
 
   // var tempDeltaMin = d3.min(Object.values(d3.min(data)));
   // var tempDeltaMax = d3.max(Object.values(d3.max(data)));    
@@ -498,7 +498,7 @@ function makeAvFHeatMapSvg(data, svgParent, marginParams, titleString) {
 
   var dataFlat = [];
   
-  for(var i = 0; i < 7; i++){
+  for(var i = 0; i < 6; i++){
     for(var j = 0; j < 24; j++){
       dataFlat.push({
 	"i" : i,
@@ -508,7 +508,7 @@ function makeAvFHeatMapSvg(data, svgParent, marginParams, titleString) {
     }
   }
 
-  for (i = 1; i <= 7; i++){
+  for (i = 1; i <= 6; i++){
     svg.append('text')
       .attr('x', xScale(-0.5))
       .attr('y', yScale(i - 0.4))
@@ -520,7 +520,7 @@ function makeAvFHeatMapSvg(data, svgParent, marginParams, titleString) {
   for (j = 0; j <= 23; j++){
     svg.append('text')
       .attr('x', xScale(j+0.25))
-      .attr('y', yScale(7.5))
+      .attr('y', yScale(6.5))
       .attr('text-anchor', 'left')
       .style('font-size', '10px')
       .text(j);
@@ -578,7 +578,7 @@ function makeAvFHeatMapSvg(data, svgParent, marginParams, titleString) {
 
   var tempScale = d3.scaleLinear()
       .domain([tempDeltaMax, tempDeltaMin])
-      .range([0, 8 * square_size]);
+      .range([0, 7 * square_size]);
   
   var nStops = 10;
   for (i = 0; i <= nStops; i++) {
@@ -595,7 +595,7 @@ function makeAvFHeatMapSvg(data, svgParent, marginParams, titleString) {
     .attr('x', 27 * square_size)
     .attr('y', 0)
     .attr('width', square_size)
-    .attr('height', 8 * square_size);
+    .attr('height', 7 * square_size);
   
   var temp_axis = d3.axisLeft()
       .scale(tempScale);
@@ -695,7 +695,7 @@ function makeFvFHeatMapSvg(data, svgParent, marginParams, titleString, heatmap_t
     .style('font-size', '16px')
     .text(titleString);
 
-  for (day1 = 1; day1 <= 6; day1++){
+  for (day1 = 1; day1 <= 5; day1++){
     for (day2 = 0; day2 < day1; day2++){
       svg.append('text')
   	.attr('x', xScale(-1.5))
@@ -709,7 +709,7 @@ function makeFvFHeatMapSvg(data, svgParent, marginParams, titleString, heatmap_t
   for (j = 0; j <= 23; j++){
     svg.append('text')
       .attr('x', xScale(j+0.25))
-      .attr('y', yScale(21.5))
+      .attr('y', yScale(15.5))
       .attr('text-anchor', 'left')
       .style('font-size', '10px')
       .text(j);
@@ -771,7 +771,7 @@ function makeFvFHeatMapSvg(data, svgParent, marginParams, titleString, heatmap_t
 
   var deltaScale = d3.scaleLinear()
       .domain([deltaMax, deltaMin])
-      .range([0, 22 * square_size]);
+      .range([0, 16 * square_size]);
   
   var nStops = 10;
   for (i = 0; i <= nStops; i++) {
@@ -788,7 +788,7 @@ function makeFvFHeatMapSvg(data, svgParent, marginParams, titleString, heatmap_t
     .attr('x', 27 * square_size)
     .attr('y', 0)
     .attr('width', square_size)
-    .attr('height', 22 * square_size);
+    .attr('height', 16 * square_size);
   
   var delta_axis = d3.axisLeft()
       .scale(deltaScale);
@@ -882,10 +882,10 @@ function updatePage() {
   updateGraphs(airport, start_date_str, end_date_str);
       
   // add avf heatmap plot
-  makeAvFHeatMap(airport);
+  //makeAvFHeatMap(airport);
 
   // add fvf heatmap plot
-  makeFvFHeatMap(airport);  
+  //makeFvFHeatMap(airport);  
 }
 
 function makePage() {
@@ -902,10 +902,10 @@ function makePage() {
   makeGraphs(airport, start_date_str, end_date_str);
       
   // add avf heatmap plot
-  makeAvFHeatMap(airport);
+  //makeAvFHeatMap(airport);
 
   // add fvf heatmap plot
-  makeFvFHeatMap(airport);  
+  //makeFvFHeatMap(airport);  
 }
 
 
